@@ -41,10 +41,37 @@ class SimpleLog {
 		return true;
 		
 	}
+	
+	function get_format_logs( $log_array ) {
+	
+		$query_slice = array();
+		
+		foreach( $log_array as $log_info ) {
+				
+			$query_slice[] = $this->get_format( $log_info[0], $log_info[1] );
+					
+		}
+		
+		$query_slice[] = ""; //для переноса строки в конце файла
+		
+		return $query_slice;
+		
+	}
+	
+	//Функция определения формата записи данных логов в файл (или stdout)
+	function get_format( $text, $time ) {
+	
+		$format = <<<HTML
+[{$time}] {$text}
+HTML;
+
+return $format;
+	
+	}
 
 	function add( $text, $no_compile = true ) {
 	
-		if ( $this->compile && $no_compile ) {
+		if ( $this->compile && $no_compile ) { //если добавление массовое
 		
 			$this->add_compile( $text );
 			return true;
@@ -83,26 +110,14 @@ class SimpleLog {
 		}
 		elseif ( $this->type == "file" ) {
 		
-			foreach( $log_array as $log_info ) {
-				
-				$query_slice[] = "[" . $log_info[1] . "] " . $log_info[0];
-					
-			}
-			
-			$query_slice[] = ""; //для переноса строки в конце файла
+			$query_slice = $this->get_format_logs( $log_array );
 		
 			if ( file_put_contents( $this->file, implode( "\r\n", $query_slice ), FILE_APPEND ) ) $log_added = true;
 				
 		}
 		elseif ( $this->type == "stdout" ) {
 		
-			foreach( $log_array as $log_info ) {
-				
-				$query_slice[] = "[" . $log_info[1] . "] " . $log_info[0];
-					
-			}
-			
-			if ( ! $this->compile ) $query_slice[] = ""; //для переносов строк, при единичном выводе логов
+			$query_slice = $this->get_format_logs( $log_array );
 			
 			if ( file_put_contents( 'php://stdout', implode( "\n", $query_slice ), FILE_APPEND ) ) $log_added = true;
 			
