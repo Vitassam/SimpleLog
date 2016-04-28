@@ -13,6 +13,9 @@ class SimpleLog {
 	
 	var $compile = false;
 	var $compile_arr = array();
+	
+	var $db = false;
+	var $show_error = false; //выводить ли MySQL-ошибки
 
 	function SimpleLog( $config ) {
 	
@@ -141,7 +144,7 @@ return $format;
 			
 		}
 		
-		if ( DB::get_db() ) @mysqli_close( DB::get_db() );
+		if ( $this->db ) @mysqli_close( $this->db );
 		
 	}
 
@@ -149,19 +152,11 @@ return $format;
 
 class DB extends SimpleLog {
 
-	var $db = false;
-	
-	function get_db() {
-	
-		return $this->db;
-		
-	}
-
 	function connect( $db_host, $db_name, $db_user, $db_pass ) {
 	
 		$db_host_exp = explode( ":", $this->db_host );
 
-		if ( isset( $db_location[1] ) ) {
+		if ( isset( $db_host_exp[1] ) ) {
 
 			$this->db = @mysqli_connect( $db_host_exp[0], $this->db_user, $this->db_pass, $this->db_name, $db_host_exp[1] );
 
@@ -171,8 +166,10 @@ class DB extends SimpleLog {
 
 		}
 
-		if( !$this->db ) {
-		
+		if( ! $this->db ) {
+				
+			if ( $this->show_error ) self::show_mysql_error( mysqli_connect_error() );
+
 			return false;
 		
 		}
@@ -188,17 +185,33 @@ class DB extends SimpleLog {
 		if( ! $this->db ) self::connect( $this->db_host, $this->db_name, $this->db_user, $this->db_pass );
 
 		if ( mysqli_query( $this->db, $query ) ) return true;
-		else return false;
+		else {
+		
+			if ( $this->show_error ) self::show_mysql_error( mysqli_error( $this->db ) );
+		
+			return false;
+		
+		}
 		
 		}
 	
 	public function addsafe( $text ) {
 	
-		if( !$this->db ) self::connect( $this->db_host, $this->db_name, $this->db_user, $this->db_pass );
+		if( ! $this->db ) self::connect( $this->db_host, $this->db_name, $this->db_user, $this->db_pass );
 		
 		if ( $this->db ) return mysqli_real_escape_string( $this->db, $text );
 		else return addslashes( $text );
 		
+	}
+	
+	function show_mysql_error( $error ) {
+	
+		$error = htmlspecialchars( $error, ENT_QUOTES, "ISO-8859-1" );
+		
+		echo "MySQL Error: {$error}";
+		
+		exit();
+	
 	}
 
 }
